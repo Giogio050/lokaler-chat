@@ -1,0 +1,1152 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="dark" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' rx='4' fill='%237c9cff'/></svg>" />
+  <title>Lokaler Chat</title>
+  <style>
+    :root {
+      --bg: #0c0d12;
+      --bg-2: #14161e;
+      --panel: #1a1d27;
+      --border: #2a2e3b;
+      --text: #eceef4;
+      --muted: #9399ab;
+      --accent: #7c9cff;
+      --accent-2: #9b7cff;
+      --user: #2a3a68;
+      --bot: #1c1f2a;
+      --danger: #ff6b7a;
+      --ok: #6ee7b7;
+      --warn: #ffd08a;
+      --shadow: 0 10px 30px rgba(0, 0, 0, .35);
+      --radius: 16px;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0;
+      background: var(--bg); color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      height: 100%;
+    }
+    body {
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    }
+    .wrap {
+      width: min(760px, 100%);
+      margin: 0 auto;
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      padding: 10px 12px 8px;
+    }
+    header {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .title-row { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+    h1 { font-size: 1.05rem; margin: 0; font-weight: 650; letter-spacing: .01em; }
+    .hint { color: var(--muted); font-size: 12px; line-height: 1.4; }
+    .modes {
+      display: flex;
+      gap: 6px;
+      background: var(--bg-2);
+      padding: 4px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+    }
+    .modes button {
+      flex: 1;
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      font-size: 12.5px;
+      font-weight: 600;
+      padding: 8px 6px;
+      border-radius: 9px;
+      cursor: pointer;
+    }
+    .modes button[aria-pressed="true"] {
+      background: var(--panel);
+      color: var(--text);
+      box-shadow: var(--shadow);
+    }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+    select, input[type="text"], input[type="password"], input[type="url"], textarea {
+      background: var(--bg-2);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 9px 10px;
+      font: inherit;
+      font-size: 14px;
+      width: 100%;
+    }
+    select { flex: 1; min-width: 160px; }
+    .btn {
+      border: 1px solid var(--border);
+      background: var(--panel);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 9px 12px;
+      font: inherit;
+      font-size: 13.5px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .btn:disabled { opacity: .45; cursor: default; }
+    .btn.primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      border-color: transparent;
+      color: #0b0c10;
+    }
+    .btn.danger { color: var(--danger); border-color: #4a2a32; }
+    .status {
+      font-size: 12.5px;
+      color: var(--muted);
+      min-height: 1.3em;
+      line-height: 1.45;
+    }
+    .status.error { color: var(--danger); }
+    .status.ok { color: var(--ok); }
+    .status.warn { color: var(--warn); }
+    .progress {
+      display: none;
+      height: 8px;
+      background: var(--border);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .progress > span {
+      display: block;
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      transition: width .2s ease;
+    }
+    .progress-label { display: none; font-size: 12px; color: var(--muted); }
+    .banner {
+      display: none;
+      background: #2a1f0c;
+      color: var(--warn);
+      border: 1px solid #5a4318;
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-size: 12.5px;
+      line-height: 1.45;
+    }
+    .settings {
+      display: none;
+      gap: 8px;
+      flex-direction: column;
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px;
+    }
+    .settings label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+    .row { display: flex; gap: 8px; }
+    .row > div { flex: 1; min-width: 0; }
+    #chat {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 12px 2px;
+      -webkit-overflow-scrolling: touch;
+    }
+    .msg {
+      max-width: 88%;
+      padding: 10px 13px;
+      border-radius: 16px;
+      line-height: 1.55;
+      font-size: 15px;
+      overflow-wrap: anywhere;
+      white-space: pre-wrap;
+    }
+    .msg.user {
+      align-self: flex-end;
+      background: var(--user);
+      border-bottom-right-radius: 5px;
+    }
+    .msg.bot {
+      align-self: flex-start;
+      background: var(--bot);
+      border: 1px solid var(--border);
+      border-bottom-left-radius: 5px;
+    }
+    .msg.sys {
+      align-self: center;
+      max-width: 100%;
+      background: transparent;
+      color: var(--muted);
+      font-size: 12.5px;
+      text-align: center;
+      border: 0;
+      padding: 4px 8px;
+    }
+    .msg .thought {
+      margin-bottom: 8px;
+      border: 1px dashed var(--border);
+      border-radius: 8px;
+      padding: 6px 8px;
+      color: var(--muted);
+      font-size: 12.5px;
+    }
+    #composer {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding-top: 8px;
+      border-top: 1px solid var(--border);
+    }
+    .composer-row { display: flex; gap: 8px; align-items: flex-end; }
+    #prompt {
+      flex: 1;
+      min-height: 44px;
+      max-height: 140px;
+      resize: none;
+      line-height: 1.4;
+    }
+    .fineprint { color: var(--muted); font-size: 11px; line-height: 1.4; }
+    a { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="title-row">
+        <h1>Lokaler Chat</h1>
+        <div class="hint">Kein Konto nötig im Server-Modus</div>
+      </div>
+      <div class="modes" role="tablist" aria-label="Modus">
+        <button type="button" id="mode-hosted" aria-pressed="true">Server</button>
+        <button type="button" id="mode-browser" aria-pressed="false">Im Browser</button>
+        <button type="button" id="mode-api" aria-pressed="false">Eigene API</button>
+      </div>
+      <div class="controls">
+        <select id="picker" aria-label="Modell oder Server"></select>
+        <button type="button" class="btn" id="connect-btn">Verbinden</button>
+        <button type="button" class="btn danger" id="clear-btn">Verlauf löschen</button>
+      </div>
+      <div id="settings-hosted" class="settings" style="display:flex">
+        <div class="hint">Läuft über einen kostenlosen Hugging-Face-Space. Gut fürs iPhone. Es kann eine Warteschlange geben, und das Tageslimit der kostenlosen GPU ist knapp. Wenn ein Server ausfällt, wird automatisch der nächste versucht.</div>
+      </div>
+      <div id="settings-browser" class="settings">
+        <div class="hint">Lädt ein kleines Modell auf dein Gerät (WebGPU). Nach dem ersten Download bleibt es im Browser-Cache und geht auch offline. Am iPhone 13 (4 GB RAM) ist das unsicher und oft zu groß. Am Desktop mit Chrome ist es sinnvoll.</div>
+      </div>
+      <div id="settings-api" class="settings">
+        <div class="hint">OpenAI-kompatibler Endpunkt, zum Beispiel OpenRouter. Schlüssel wird nur in diesem Browser gespeichert, nie mitgeliefert.</div>
+        <div>
+          <label for="api-base">Basis-URL</label>
+          <input id="api-base" type="url" spellcheck="false" placeholder="https://openrouter.ai/api/v1" />
+        </div>
+        <div class="row">
+          <div>
+            <label for="api-key">API-Schlüssel (optional)</label>
+            <input id="api-key" type="password" spellcheck="false" autocomplete="off" placeholder="sk-… oder leer" />
+          </div>
+          <div>
+            <label for="api-model">Modellname</label>
+            <input id="api-model" type="text" spellcheck="false" placeholder="cognitivecomputations/dolphin-mistral-24b-venice-edition" />
+          </div>
+        </div>
+      </div>
+      <div id="banner" class="banner" role="status"></div>
+      <div id="status" class="status">Wähle einen Server und tippe eine Nachricht, oder tippe auf Verbinden.</div>
+      <div id="progress" class="progress" aria-hidden="true"><span></span></div>
+      <div id="progress-label" class="progress-label"></div>
+    </header>
+
+    <div id="chat" aria-live="polite"></div>
+
+    <form id="composer" autocomplete="off">
+      <div class="composer-row">
+        <textarea id="prompt" rows="1" placeholder="Nachricht schreiben…" enterkeyhint="send"></textarea>
+        <button type="button" class="btn" id="stop-btn" hidden>Stop</button>
+        <button type="submit" class="btn primary" id="send-btn">Senden</button>
+      </div>
+      <div class="fineprint">Enter sendet, Umschalt+Enter macht eine neue Zeile. Unzensierte Modelle — du bist für die Nutzung verantwortlich.</div>
+    </form>
+  </div>
+
+  <!--
+    Hosted mode talks to Hugging Face Spaces with plain fetch() + SSE
+    (POST /gradio_api/call/<endpoint> then GET /gradio_api/queue/data?session_hash=...).
+    No ES module, no CDN library, so this file works from file:// in a desktop
+    browser and over https on an iPhone. WebGPU (Transformers.js) is loaded only
+    if the user picks "Im Browser", via dynamic import(); that can still fail
+    on iOS file:// — the UI then tells you to stay in Server-Modus.
+
+    Spaces checked 2026-11-17:
+      mxderncultxre/Gemma4-31b-uncensored-assistant  /chat   (answered earlier)
+      LewPie/huihui-qwen3-8-27b-abliterated-demo     /add_user_message + /chat
+      ukung/Muse-Glimmer-30B-DFlash-Abliterated      /chat
+      MicroHERO/qwen3.8-27b-uncensored-chat          /respond (fallback)
+      JonathanColetti/Qwen3.8-27B-Uncensored-Demo    /respond (fallback)
+  -->
+  <script>
+  (function () {
+    "use strict";
+
+    var TRANSFORMERS_CDN = "https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.2/+esm";
+    var SYSTEM_DEFAULT = "Du bist ein hilfreicher Assistent. Antworte klar und auf Deutsch, wenn der Nutzer Deutsch schreibt.";
+
+    var SPACES = [
+      { id: "mxderncultxre/Gemma4-31b-uncensored-assistant", label: "Gemma 4 31B abliteriert (Server)", kind: "gemma_dict", tested: true },
+      { id: "LewPie/huihui-qwen3-8-27b-abliterated-demo", label: "Qwen3.8 27B abliteriert (Server)", kind: "lewpie", tested: true },
+      { id: "ukung/Muse-Glimmer-30B-DFlash-Abliterated", label: "Muse Glimmer 30B (Server)", kind: "muse", tested: true },
+      { id: "MicroHERO/qwen3.8-27b-uncensored-chat", label: "Qwen3.8 27B Uncensored, MicroHERO (Server)", kind: "respond_mm", tested: false },
+      { id: "JonathanColetti/Qwen3.8-27B-Uncensored-Demo", label: "Qwen3.8 27B Uncensored, Coletti (Server)", kind: "respond_coletti", tested: false }
+    ];
+
+    var LOCAL_MODELS = [
+      { id: "onnx-community/Qwen2.5-0.5B-Instruct-abliterated-v3-ONNX", label: "Qwen2.5 0.5B abliteriert (~490 MB, q4f16)", dtype: "q4f16", fallbackDtype: "q4", sizeHint: 490, enableThinking: false, desktopOnly: false },
+      { id: "onnx-community/Qwen3-0.6B-heretic-abliterated-uncensored-ONNX", label: "Qwen3 0.6B heretic (~665 MB, q4f16)", dtype: "q4f16", fallbackDtype: "q4", sizeHint: 665, enableThinking: false, desktopOnly: false },
+      { id: "j4ys0n/MiniCPM5-2B-heretic-abliterated-ONNX", label: "MiniCPM5 2B heretic (~1,85 GB, nur Desktop)", dtype: "q4f16", fallbackDtype: null, sizeHint: 1850, enableThinking: false, desktopOnly: true }
+    ];
+
+    var $ = function (id) { return document.getElementById(id); };
+    var chatEl = $("chat");
+    var promptEl = $("prompt");
+    var statusEl = $("status");
+    var bannerEl = $("banner");
+    var progressEl = $("progress");
+    var progressFill = progressEl.firstElementChild;
+    var progressLabel = $("progress-label");
+    var picker = $("picker");
+    var sendBtn = $("send-btn");
+    var stopBtn = $("stop-btn");
+    var connectBtn = $("connect-btn");
+
+    var mode = "hosted";
+    var history = [];
+    var generating = false;
+    var cancelFn = null;
+    var localPipe = null;
+    var localModelId = null;
+    var transformersMod = null;
+
+    var store = {
+      get: function (k, d) {
+        try {
+          var v = localStorage.getItem("uc_" + k);
+          return v == null ? d : JSON.parse(v);
+        } catch (e) { return d; }
+      },
+      set: function (k, v) {
+        try { localStorage.setItem("uc_" + k, JSON.stringify(v)); } catch (e) {}
+      }
+    };
+
+    function setStatus(text, kind) {
+      statusEl.className = "status" + (kind ? " " + kind : "");
+      statusEl.textContent = text || "";
+    }
+    function setBanner(text) {
+      bannerEl.style.display = text ? "block" : "none";
+      bannerEl.textContent = text || "";
+    }
+    function setProgress(pct, label) {
+      var show = pct != null;
+      progressEl.style.display = show ? "block" : "none";
+      progressLabel.style.display = show && label ? "block" : "none";
+      progressEl.setAttribute("aria-hidden", show ? "false" : "true");
+      if (show) {
+        var n = pct > 1 ? pct : pct * 100;
+        progressFill.style.width = Math.max(0, Math.min(100, n)) + "%";
+        progressLabel.textContent = label || (Math.round(n) + " %");
+      }
+    }
+    function scrollChat() { chatEl.scrollTop = chatEl.scrollHeight; }
+
+    function addBubble(role, text) {
+      var el = document.createElement("div");
+      el.className = "msg " + (role === "user" ? "user" : role === "system" ? "sys" : "bot");
+      el.textContent = text || "";
+      chatEl.appendChild(el);
+      scrollChat();
+      return el;
+    }
+
+    function splitThought(text) {
+      text = text || "";
+      var patterns = [/<think>([\s\S]*?)<\/think>\s*/i, /<thinking>([\s\S]*?)<\/thinking>\s*/i];
+      for (var i = 0; i < patterns.length; i++) {
+        var m = text.match(patterns[i]);
+        if (m) return { thought: m[1].trim(), answer: text.replace(patterns[i], "").replace(/^\s+/, "") };
+      }
+      var close = text.lastIndexOf("</think>");
+      if (close !== -1) {
+        return { thought: text.slice(0, close).replace(/<think>/i, "").trim(), answer: text.slice(close + 8).replace(/^\s+/, "") };
+      }
+      return { thought: "", answer: text };
+    }
+
+    function renderAssistant(el, raw) {
+      el.textContent = "";
+      var parts = splitThought(raw || "");
+      if (parts.thought) {
+        var box = document.createElement("div");
+        box.className = "thought";
+        box.textContent = parts.thought;
+        el.appendChild(box);
+      }
+      el.appendChild(document.createTextNode(parts.answer));
+      scrollChat();
+    }
+
+    function extractText(content) {
+      if (content == null) return "";
+      if (typeof content === "string") return content;
+      if (Array.isArray(content)) {
+        var bits = [];
+        for (var i = 0; i < content.length; i++) {
+          var t = extractText(content[i]);
+          if (t) bits.push(t);
+        }
+        return bits.join("\n");
+      }
+      if (typeof content === "object") {
+        if (typeof content.content === "string" && !content.text) return content.content;
+        if (typeof content.text === "string") return content.text;
+        if (content.content) return extractText(content.content);
+        if (Array.isArray(content.data)) return extractText(content.data);
+      }
+      return "";
+    }
+
+    function packTranscript(extraUser) {
+      var lines = [];
+      var prior = history.slice(0, -1);
+      for (var i = 0; i < prior.length; i++) {
+        var m = prior[i];
+        var who = m.role === "assistant" ? "Assistent" : m.role === "system" ? "System" : "Nutzer";
+        lines.push(who + ": " + m.content);
+      }
+      lines.push("Nutzer: " + extraUser);
+      lines.push("Assistent:");
+      return "Setze das Gespräch fort und antworte nur auf die letzte Nutzer-Nachricht.\n\n" + lines.join("\n");
+    }
+
+    function fillPicker() {
+      picker.innerHTML = "";
+      if (mode === "hosted") {
+        var auto = document.createElement("option");
+        auto.value = "auto";
+        auto.textContent = "Automatisch (erster Server, der antwortet)";
+        picker.appendChild(auto);
+        for (var i = 0; i < SPACES.length; i++) {
+          var o = document.createElement("option");
+          o.value = SPACES[i].id;
+          o.textContent = SPACES[i].label;
+          picker.appendChild(o);
+        }
+        picker.value = store.get("space", "auto");
+        connectBtn.textContent = "Verbinden";
+      } else if (mode === "browser") {
+        for (var j = 0; j < LOCAL_MODELS.length; j++) {
+          var p = document.createElement("option");
+          p.value = LOCAL_MODELS[j].id;
+          p.textContent = LOCAL_MODELS[j].label;
+          picker.appendChild(p);
+        }
+        picker.value = store.get("localModel", LOCAL_MODELS[0].id);
+        connectBtn.textContent = "Modell laden";
+      } else {
+        var a = document.createElement("option");
+        a.value = "api";
+        a.textContent = "OpenAI-kompatible API";
+        picker.appendChild(a);
+        connectBtn.textContent = "Übernehmen";
+      }
+    }
+
+    function hasWebGPUApi() {
+      return typeof navigator !== "undefined" && "gpu" in navigator && !!navigator.gpu;
+    }
+    var NO_WEBGPU_MSG = "Dein Browser kann WebGPU gerade nicht nutzen. Am Computer bitte Chrome oder Edge (aktuell) verwenden. Am iPhone braucht es Safari 26 oder neuer — und selbst dann sind die Modelle für ein iPhone 13 mit 4 GB RAM sehr knapp. Nutze besser den Server-Modus.";
+    var NO_MODULE_MSG = "Lokale Modelle brauchen einen ES-Modul-Import (Transformers.js). Das klappt auf dem iPhone oft nicht, wenn die Datei direkt geöffnet wird. Nutze den Server-Modus oder öffne die Seite über einen https-Link.";
+
+    function probeWebGPU() {
+      if (!hasWebGPUApi()) return Promise.resolve({ ok: false, reason: "missing-api" });
+      return navigator.gpu.requestAdapter().then(function (adapter) {
+        if (!adapter) return { ok: false, reason: "no-adapter" };
+        return { ok: true, adapter: adapter };
+      }).catch(function (err) {
+        return { ok: false, reason: String(err && err.message ? err.message : err) };
+      });
+    }
+
+    function checkWebGPU() {
+      return probeWebGPU().then(function (result) {
+        if (!result.ok) {
+          setBanner(NO_WEBGPU_MSG);
+          setStatus("WebGPU fehlt oder ist hier nicht verfügbar. Wechsle zum Server-Modus, oder öffne die Datei in Chrome am Computer.", "error");
+          return false;
+        }
+        setBanner("");
+        setStatus("WebGPU ist da. Lade zuerst ein Modell. Fürs iPhone 13 ist trotzdem der Server-Modus die sicherere Wahl.");
+        return true;
+      });
+    }
+
+    function setMode(next) {
+      mode = next;
+      store.set("mode", next);
+      $("mode-hosted").setAttribute("aria-pressed", String(next === "hosted"));
+      $("mode-browser").setAttribute("aria-pressed", String(next === "browser"));
+      $("mode-api").setAttribute("aria-pressed", String(next === "api"));
+      $("settings-hosted").style.display = next === "hosted" ? "flex" : "none";
+      $("settings-browser").style.display = next === "browser" ? "flex" : "none";
+      $("settings-api").style.display = next === "api" ? "flex" : "none";
+      fillPicker();
+      setBanner("");
+      setProgress(null);
+      if (next === "browser") {
+        checkWebGPU();
+      } else if (next === "hosted") {
+        setStatus("Server-Modus bereit. Du kannst direkt schreiben — die Verbindung startet automatisch.");
+      } else {
+        setStatus("API-Modus: trag URL und optional einen Schlüssel ein, dann schreiben.");
+      }
+    }
+
+    $("mode-hosted").addEventListener("click", function () { setMode("hosted"); });
+    $("mode-browser").addEventListener("click", function () { setMode("browser"); });
+    $("mode-api").addEventListener("click", function () { setMode("api"); });
+    picker.addEventListener("change", function () {
+      if (mode === "hosted") store.set("space", picker.value);
+      if (mode === "browser") store.set("localModel", picker.value);
+    });
+
+    $("api-base").value = store.get("apiBase", "https://openrouter.ai/api/v1");
+    $("api-model").value = store.get("apiModel", "cognitivecomputations/dolphin-mistral-24b-venice-edition");
+    $("api-key").value = store.get("apiKey", "");
+    ["api-base", "api-model", "api-key"].forEach(function (id) {
+      $(id).addEventListener("change", function () {
+        store.set("apiBase", $("api-base").value.trim());
+        store.set("apiModel", $("api-model").value.trim());
+        store.set("apiKey", $("api-key").value);
+      });
+    });
+
+    $("clear-btn").addEventListener("click", function () {
+      history = [];
+      chatEl.innerHTML = "";
+      addBubble("system", "Verlauf gelöscht.");
+    });
+
+    function autoResize() {
+      promptEl.style.height = "auto";
+      promptEl.style.height = Math.min(promptEl.scrollHeight, 140) + "px";
+    }
+    promptEl.addEventListener("input", autoResize);
+    promptEl.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        $("composer").requestSubmit();
+      }
+    });
+    stopBtn.addEventListener("click", function () {
+      try { if (cancelFn) cancelFn(); } catch (e) {}
+    });
+    $("composer").addEventListener("submit", function (e) {
+      e.preventDefault();
+      sendMessage();
+    });
+
+    connectBtn.addEventListener("click", function () {
+      Promise.resolve().then(function () {
+        if (mode === "hosted") {
+          setStatus("Server-Modus ist bereit. Schreib einfach eine Nachricht — ich verbinde mich dann von selbst.", "ok");
+          return;
+        }
+        if (mode === "browser") return loadLocalModel(picker.value);
+        store.set("apiBase", $("api-base").value.trim());
+        store.set("apiModel", $("api-model").value.trim());
+        store.set("apiKey", $("api-key").value);
+        setStatus("API-Einstellungen gespeichert. Du kannst schreiben.", "ok");
+      }).catch(function (err) {
+        setStatus(humanError(err), "error");
+      });
+    });
+
+    function sendMessage() {
+      if (generating) return;
+      var text = promptEl.value.trim();
+      if (!text) return;
+      promptEl.value = "";
+      autoResize();
+      addBubble("user", text);
+      history.push({ role: "user", content: text });
+      var botEl = addBubble("assistant", "…");
+      generating = true;
+      sendBtn.disabled = true;
+      stopBtn.hidden = false;
+      var cancelled = false;
+      var ac = typeof AbortController !== "undefined" ? new AbortController() : null;
+      cancelFn = function () {
+        cancelled = true;
+        if (ac) ac.abort();
+      };
+      var isCancelled = function () { return cancelled; };
+      var signal = ac ? ac.signal : undefined;
+      var run;
+      if (mode === "hosted") run = sendHosted(text, botEl, isCancelled, signal);
+      else if (mode === "browser") run = sendLocal(botEl, isCancelled);
+      else run = sendApi(botEl, isCancelled, signal);
+      Promise.resolve(run).then(function () {
+        var last = history[history.length - 1];
+        if (!last || last.role !== "assistant") {
+          var fallback = splitThought(botEl.textContent || "").answer.trim();
+          if (fallback && fallback !== "…") history.push({ role: "assistant", content: fallback });
+        }
+      }).catch(function (err) {
+        if (cancelled || (err && err.name === "AbortError")) {
+          botEl.textContent = (botEl.textContent || "").replace(/…$/, "") + " [gestoppt]";
+          setStatus("Abgebrochen.");
+          return;
+        }
+        var msg = humanError(err);
+        botEl.textContent = msg;
+        setStatus(msg, "error");
+      }).then(function () {
+        generating = false;
+        sendBtn.disabled = false;
+        stopBtn.hidden = true;
+        cancelFn = null;
+        promptEl.focus();
+      });
+    }
+
+    function spaceOrder() {
+      var selected = picker.value;
+      if (selected && selected !== "auto") {
+        var first = null, rest = [];
+        for (var i = 0; i < SPACES.length; i++) {
+          if (SPACES[i].id === selected) first = SPACES[i];
+          else rest.push(SPACES[i]);
+        }
+        return first ? [first].concat(rest) : rest;
+      }
+      return SPACES.slice();
+    }
+
+    function spaceRoot(id) {
+      return "https://" + String(id).toLowerCase().replace(/[./]/g, "-") + ".hf.space";
+    }
+
+    function newSessionHash() {
+      if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID().replace(/-/g, "");
+      var s = "";
+      for (var i = 0; i < 32; i++) s += Math.floor(Math.random() * 16).toString(16);
+      return s;
+    }
+
+    function readSSE(response, onEvent) {
+      if (!response.body || !response.body.getReader) {
+        return response.text().then(function (text) {
+          var blocks = text.replace(/\r\n/g, "\n").split("\n\n");
+          for (var i = 0; i < blocks.length; i++) {
+            if (handleSSEBlock(blocks[i], onEvent)) return;
+          }
+        });
+      }
+      var reader = response.body.getReader();
+      var dec = new TextDecoder();
+      var buf = "";
+      function pump() {
+        return reader.read().then(function (chunk) {
+          if (chunk.done) {
+            if (buf.trim()) handleSSEBlock(buf, onEvent);
+            return;
+          }
+          buf += dec.decode(chunk.value, { stream: true });
+          buf = buf.replace(/\r\n/g, "\n");
+          var idx;
+          while ((idx = buf.indexOf("\n\n")) !== -1) {
+            var raw = buf.slice(0, idx);
+            buf = buf.slice(idx + 2);
+            if (handleSSEBlock(raw, onEvent)) {
+              try { reader.cancel(); } catch (e) {}
+              return;
+            }
+          }
+          return pump();
+        });
+      }
+      return pump();
+    }
+
+    function handleSSEBlock(raw, onEvent) {
+      if (!raw || !String(raw).trim()) return false;
+      var event = "message";
+      var data = "";
+      var lines = String(raw).split("\n");
+      for (var i = 0; i < lines.length; i++) {
+        var line = lines[i];
+        if (line.indexOf("event:") === 0) event = line.slice(6).trim();
+        else if (line.indexOf("data:") === 0) {
+          var part = line.slice(5);
+          if (part.charAt(0) === " ") part = part.slice(1);
+          data += (data ? "\n" : "") + part;
+        }
+      }
+      if (!data) return false;
+      var parsed = data;
+      try { parsed = JSON.parse(data); } catch (e) {}
+      return !!onEvent(event, parsed, data);
+    }
+
+    function describeStatus(st) {
+      if (!st) return "";
+      if (st.stage === "pending" && st.queue) {
+        var pos = st.position != null ? "Platz " + (st.position + 1) : "in der Schlange";
+        var eta = st.eta ? ", etwa " + Math.round(st.eta) + " s" : "";
+        return "In der Warteschlange (" + pos + eta + ") …";
+      }
+      if (st.stage === "generating") return "Der Server schreibt …";
+      if (st.stage === "error") return st.message || "Der Server hat einen Fehler gemeldet.";
+      return st.message || "";
+    }
+
+    function humanError(err) {
+      var raw = err && err.message ? err.message : String(err);
+      if (/ZeroGPU runs limit|quota|Authenticate with a Hugging Face token/i.test(raw)) {
+        return "Das kostenlose GPU-Tageslimit dieses Servers ist erreicht. Ich versuche den nächsten, oder schau später nochmal vorbei.";
+      }
+      if (/RUNTIME_ERROR|RuntimeError/i.test(raw)) return "Der Server ist abgestürzt oder das Modell ließ sich nicht laden.";
+      if (/PAUSED|SLEEPING|stopped|not running|session_not_found/i.test(raw)) return "Dieser Space ist gerade nicht aktiv.";
+      if (/WebGPU|no available backend|not supported|shader-f16/i.test(raw)) return "WebGPU ist hier nicht nutzbar: " + raw;
+      if (/Failed to fetch|NetworkError|Load failed|CORS|NetworkError when attempting to fetch/i.test(raw)) {
+        return "Keine Verbindung zum Server. Prüfe das Netz und versuch es nochmal.";
+      }
+      if (/import|Modul-Import|Failed to resolve module|error loading dynamically imported/i.test(raw)) return NO_MODULE_MSG;
+      return raw.slice(0, 400);
+    }
+
+    function isQuotaOrDown(err) {
+      var raw = String(err && err.message ? err.message : err);
+      return /ZeroGPU runs limit|quota|Authenticate with a Hugging Face token|RUNTIME_ERROR|RuntimeError|PAUSED|SLEEPING|404|not found|session_not_found|Failed to fetch|NetworkError|abgestürzt/i.test(raw);
+    }
+
+    /* Gradio REST + SSE client (no library). POST first, then queue/data. */
+    function gradioCall(spaceId, apiName, data, hooks) {
+      hooks = hooks || {};
+      var root = spaceRoot(spaceId);
+      var session_hash = newSessionHash();
+      var name = String(apiName).replace(/^\//, "");
+      var signal = hooks.signal;
+      return fetch(root + "/gradio_api/call/" + name, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ data: data, session_hash: session_hash }),
+        signal: signal
+      }).then(function (postRes) {
+        if (!postRes.ok) {
+          return postRes.text().then(function (t) {
+            throw new Error("Space HTTP " + postRes.status + (t ? ": " + t.slice(0, 200) : ""));
+          });
+        }
+        return postRes.json();
+      }).then(function (ev) {
+        var eventId = ev && ev.event_id;
+        if (!eventId) throw new Error("Der Server hat keine event_id geliefert.");
+        return fetch(root + "/gradio_api/queue/data?session_hash=" + encodeURIComponent(session_hash), {
+          headers: { Accept: "text/event-stream" },
+          signal: signal
+        }).then(function (sseRes) {
+          if (!sseRes.ok) throw new Error("Stream HTTP " + sseRes.status);
+          var finalData = null;
+          var streamError = null;
+          return readSSE(sseRes, function (event, parsed) {
+            if (event === "error") {
+              streamError = typeof parsed === "string" ? parsed : (parsed && (parsed.message || parsed.error)) || "Serverfehler";
+              return true;
+            }
+            if (!parsed || typeof parsed !== "object") return false;
+            var msg = parsed.msg;
+            if (parsed.event_id && eventId && parsed.event_id !== eventId && msg !== "close_stream") return false;
+            if (msg === "estimation") {
+              var d = describeStatus({ stage: "pending", queue: true, position: parsed.rank, eta: parsed.rank_eta, size: parsed.queue_size });
+              if (d && hooks.onStatus) hooks.onStatus(d);
+            } else if (msg === "process_starts") {
+              if (hooks.onStatus) hooks.onStatus(describeStatus({ stage: "generating", eta: parsed.eta }) || "Der Server schreibt …");
+            } else if (msg === "process_generating" || msg === "process_completed") {
+              var out = parsed.output || {};
+              if (parsed.success === false || out.error) {
+                streamError = out.error || parsed.title || parsed.message || "Serverfehler";
+                return true;
+              }
+              var payload = out.data;
+              finalData = payload;
+              if (hooks.onData) hooks.onData(payload, parsed);
+              if (msg === "process_completed") return true;
+            } else if (msg === "unexpected_error" || msg === "error") {
+              streamError = parsed.message || parsed.error || "Serverfehler";
+              return true;
+            } else if (msg === "close_stream") {
+              return true;
+            }
+            return false;
+          }).then(function () {
+            if (streamError) throw new Error(typeof streamError === "string" ? streamError : JSON.stringify(streamError));
+            return finalData;
+          });
+        });
+      });
+    }
+
+    function sendHosted(userText, botEl, isCancelled, signal) {
+      var order = spaceOrder();
+      var lastErr = null;
+      function tryAt(i) {
+        if (i >= order.length) throw lastErr || new Error("Kein Server hat geantwortet.");
+        if (isCancelled()) return;
+        var space = order[i];
+        setStatus("Verbinde mit " + space.label + " …");
+        return callSpace(space, userText, botEl, isCancelled, signal).then(function (text) {
+          if (text == null) throw new Error("Leere Antwort vom Server.");
+          var clean = splitThought(text).answer.trim() || text.trim();
+          renderAssistant(botEl, text);
+          if (clean) history.push({ role: "assistant", content: clean });
+          setStatus("Antwort von " + space.id + ".", "ok");
+          store.set("space", picker.value);
+        }).catch(function (err) {
+          lastErr = err;
+          var msg = humanError(err);
+          setStatus(msg, "warn");
+          if (isCancelled()) return;
+          if (i < order.length - 1) {
+            addBubble("system", space.id + " antwortet nicht. Versuche " + order[i + 1].id + " …");
+            return tryAt(i + 1);
+          }
+          throw err;
+        });
+      }
+      return tryAt(0);
+    }
+
+    function historyForGemma() {
+      return history.filter(function (m) {
+        return m.role === "user" || m.role === "assistant";
+      }).slice(0, -1).map(function (m) {
+        return { role: m.role, text: m.content, files: [] };
+      });
+    }
+
+    function callSpace(space, userText, botEl, isCancelled, signal) {
+      if (space.kind === "gemma_dict" || space.kind === "muse") return callDictChat(space, userText, botEl, signal);
+      if (space.kind === "lewpie") return callLewpie(space, userText, botEl, signal);
+      if (space.kind === "respond_mm") {
+        return callRespond(space, "respond", [
+          { text: packTranscript(userText), files: [] },
+          256, 0.7, 0.95
+        ], botEl, signal);
+      }
+      if (space.kind === "respond_coletti") {
+        return callRespond(space, "respond", [
+          { text: packTranscript(userText), files: [] },
+          "off", 0.7, 0.95, 20
+        ], botEl, signal);
+      }
+      return Promise.reject(new Error("Unbekannter Space-Typ: " + space.kind));
+    }
+
+    function callDictChat(space, userText, botEl, signal) {
+      var payload = space.kind === "muse"
+        ? [userText, null, historyForGemma(), SYSTEM_DEFAULT, 256, 0.7, 0.95, 64, 1.0, "low", 90, true]
+        : [userText, null, historyForGemma(), false, 256, 560, SYSTEM_DEFAULT, 0.7, 0.9, 40, 1.0];
+      var latest = "";
+      return gradioCall(space.id, "chat", payload, {
+        signal: signal,
+        onStatus: function (d) { if (d) setStatus(d); },
+        onData: function (data) {
+          var obj = normalizeDict(data);
+          if (obj && obj.error) throw new Error(obj.error);
+          if (!obj) return;
+          var thought = obj.reasoning || "";
+          var content = obj.content || "";
+          latest = thought && content ? "<think>" + thought + "</think>\n" + content : (content || (thought ? "<think>" + thought + "</think>\n" : ""));
+          if (latest) renderAssistant(botEl, latest);
+        }
+      }).then(function (data) {
+        if (!latest) {
+          var obj = normalizeDict(data);
+          if (obj && obj.error) throw new Error(obj.error);
+          if (obj) {
+            var thought = obj.reasoning || "";
+            var content = obj.content || extractText(obj);
+            latest = thought && content ? "<think>" + thought + "</think>\n" + content : (content || thought || "");
+          }
+        }
+        if (!latest) throw new Error("Leere Antwort vom Server.");
+        return latest;
+      });
+    }
+
+    function normalizeDict(data) {
+      if (data && typeof data === "object" && !Array.isArray(data) && ("content" in data || "reasoning" in data || "error" in data)) return data;
+      if (Array.isArray(data) && data.length === 1) return normalizeDict(data[0]);
+      return null;
+    }
+
+    function takeAssistant(data) {
+      var list = null;
+      if (Array.isArray(data) && data.length && data[0] && data[0].role) list = data;
+      else if (Array.isArray(data) && data.length === 2 && Array.isArray(data[1])) list = data[1];
+      if (!list) return "";
+      for (var i = list.length - 1; i >= 0; i--) {
+        if (list[i] && list[i].role === "assistant") return extractText(list[i].content) || extractText(list[i]);
+      }
+      return "";
+    }
+
+    function callLewpie(space, userText, botEl, signal) {
+      var prev = history.filter(function (m) {
+        return m.role === "user" || m.role === "assistant";
+      }).slice(0, -1).map(function (m) {
+        return { role: m.role, metadata: null, content: [{ text: m.content, type: "text" }], options: null };
+      });
+      return gradioCall(space.id, "add_user_message", [userText, prev], {
+        signal: signal,
+        onStatus: function (d) { if (d) setStatus(d); }
+      }).then(function (added) {
+        var hist = Array.isArray(added) && added.length >= 2 ? added[1] : added;
+        var latest = "";
+        return gradioCall(space.id, "chat", [hist, SYSTEM_DEFAULT, 0.7, 0.9, 40, 256, 1.1], {
+          signal: signal,
+          onStatus: function (d) { if (d) setStatus(d); },
+          onData: function (data) {
+            var t = takeAssistant(data);
+            if (t) { latest = t; renderAssistant(botEl, latest); }
+          }
+        }).then(function (data) {
+          if (!latest) latest = takeAssistant(data);
+          if (!latest) throw new Error("Leere Antwort vom Server.");
+          return latest;
+        });
+      });
+    }
+
+    function callRespond(space, endpoint, payload, botEl, signal) {
+      setStatus("Der Server schreibt … Das kann bei einem kalten Modell ein paar Minuten dauern.");
+      var latest = "";
+      return gradioCall(space.id, endpoint, payload, {
+        signal: signal,
+        onStatus: function (d) { if (d) setStatus(d); },
+        onData: function (data) {
+          var text = typeof data === "string" ? data : extractText(data);
+          if (text) { latest = text; renderAssistant(botEl, latest); }
+        }
+      }).then(function (data) {
+        if (!latest) latest = typeof data === "string" ? data : extractText(data);
+        if (!latest) throw new Error("Leere Antwort vom Server.");
+        return latest;
+      });
+    }
+
+    function loadTransformers() {
+      if (transformersMod) return Promise.resolve(transformersMod);
+      setStatus("Lade Transformers.js (nur für den Browser-Modus) …");
+      return import(TRANSFORMERS_CDN).then(function (mod) {
+        transformersMod = mod;
+        return mod;
+      }).catch(function (err) {
+        throw new Error(NO_MODULE_MSG + " (" + (err && err.message ? err.message : err) + ")");
+      });
+    }
+
+    function loadLocalModel(modelId) {
+      var spec = null;
+      for (var i = 0; i < LOCAL_MODELS.length; i++) if (LOCAL_MODELS[i].id === modelId) spec = LOCAL_MODELS[i];
+      if (!spec) spec = LOCAL_MODELS[0];
+      return checkWebGPU().then(function (ok) {
+        if (!ok) throw new Error("WebGPU fehlt.");
+        if (localPipe && localModelId === spec.id) {
+          setStatus("Modell ist schon geladen.", "ok");
+          return localPipe;
+        }
+        var ready = Promise.resolve();
+        if (localPipe && localPipe.dispose) {
+          ready = Promise.resolve(localPipe.dispose()).catch(function () {});
+          localPipe = null;
+          localModelId = null;
+        }
+        return ready.then(function () { return loadTransformers(); }).then(function (tf) {
+          setStatus("Lade " + spec.id + " … erster Download etwa " + spec.sizeHint + " MB.");
+          setProgress(0, "0 %");
+          var dtypeP = Promise.resolve(spec.dtype);
+          if (spec.dtype === "q4f16") {
+            dtypeP = navigator.gpu.requestAdapter().then(function (adapter) {
+              var f16 = adapter && adapter.features && adapter.features.has("shader-f16");
+              if (!f16) {
+                if (spec.fallbackDtype) {
+                  setStatus("Kein shader-f16, wechsle auf " + spec.fallbackDtype + " (etwas größer).", "warn");
+                  return spec.fallbackDtype;
+                }
+                throw new Error("Dieses Modell braucht shader-f16, das dein Browser nicht anbietet.");
+              }
+              return spec.dtype;
+            });
+          }
+          return dtypeP.then(function (dtype) {
+            var files = new Map();
+            var progress_callback = function (info) {
+              if (info && info.status === "progress_total" && info.progress != null) {
+                var p = info.progress;
+                var n = p > 1 ? p : p * 100;
+                setProgress(n / 100, Math.round(n) + " %");
+              } else if (info && info.status === "progress" && info.file && info.total) {
+                files.set(info.file, [info.loaded || 0, info.total]);
+                var l = 0, t = 0;
+                files.forEach(function (pair) { l += pair[0]; t += pair[1]; });
+                if (t > 0) setProgress(l / t, Math.round((l / t) * 100) + " % · " + info.file.split("/").pop());
+              } else if (info && (info.status === "done" || info.status === "ready")) {
+                setProgress(1, "100 %");
+              }
+            };
+            return tf.pipeline("text-generation", spec.id, { device: "webgpu", dtype: dtype, progress_callback: progress_callback }).then(function (pipe) {
+              pipe._spec = spec;
+              localPipe = pipe;
+              localModelId = spec.id;
+              setProgress(1, "100 %");
+              setStatus("Modell geladen. Die Dateien liegen im Browser-Cache und gehen danach auch offline.", "ok");
+              addBubble("system", spec.id + " ist bereit (" + dtype + ").");
+              return pipe;
+            });
+          });
+        });
+      }).catch(function (err) {
+        setProgress(null);
+        setStatus(humanError(err), "error");
+        throw err;
+      });
+    }
+
+    function sendLocal(botEl, isCancelled) {
+      var specId = picker.value;
+      return loadLocalModel(specId).then(function (pipe) {
+        var spec = pipe._spec;
+        return loadTransformers().then(function (tf) {
+          var messages = [];
+          if (SYSTEM_DEFAULT) messages.push({ role: "system", content: SYSTEM_DEFAULT });
+          for (var i = 0; i < history.length; i++) messages.push({ role: history[i].role, content: history[i].content });
+          var acc = "";
+          var streamer = new tf.TextStreamer(pipe.tokenizer, {
+            skip_prompt: true,
+            skip_special_tokens: true,
+            callback_function: function (t) {
+              acc += t;
+              renderAssistant(botEl, acc);
+            }
+          });
+          var opts = { max_new_tokens: 256, temperature: 0.7, top_p: 0.9, do_sample: true, streamer: streamer };
+          if (spec && spec.enableThinking === false) opts.tokenizer_encode_kwargs = { enable_thinking: false };
+          if (tf.InterruptableStoppingCriteria) {
+            var stopper = new tf.InterruptableStoppingCriteria();
+            opts.stopping_criteria = stopper;
+            cancelFn = function () { if (stopper.interrupt) stopper.interrupt(); };
+          }
+          setStatus("Das Modell schreibt lokal …");
+          return pipe(messages, opts).then(function () {
+            if (isCancelled()) acc += " [gestoppt]";
+            if (!acc.trim()) throw new Error("Das lokale Modell hat nichts geliefert.");
+            renderAssistant(botEl, acc);
+            history.push({ role: "assistant", content: splitThought(acc).answer.trim() });
+            setStatus("Fertig (lokal im Browser).", "ok");
+          });
+        });
+      });
+    }
+
+    function sendApi(botEl, isCancelled, signal) {
+      var base = ($("api-base").value || "https://openrouter.ai/api/v1").replace(/\/+$/, "");
+      var model = ($("api-model").value || "cognitivecomputations/dolphin-mistral-24b-venice-edition").trim();
+      var key = $("api-key").value.trim();
+      store.set("apiBase", base);
+      store.set("apiModel", model);
+      store.set("apiKey", $("api-key").value);
+      var url = /\/chat\/completions$/.test(base) ? base : base + "/chat/completions";
+      var messages = [];
+      if (SYSTEM_DEFAULT) messages.push({ role: "system", content: SYSTEM_DEFAULT });
+      for (var i = 0; i < history.length; i++) messages.push({ role: history[i].role, content: history[i].content });
+      var headers = { "Content-Type": "application/json" };
+      if (key) headers.Authorization = "Bearer " + key;
+      headers["HTTP-Referer"] = location.href;
+      headers["X-Title"] = "Lokaler Chat";
+      setStatus("Frage die API …");
+      return fetch(url, {
+        method: "POST",
+        headers: headers,
+        body: JSON.stringify({ model: model, messages: messages, temperature: 0.7, max_tokens: 512, stream: true }),
+        signal: signal
+      }).then(function (res) {
+        if (!res.ok) {
+          return res.text().then(function (body) {
+            throw new Error("API-Fehler " + res.status + ": " + body.slice(0, 300));
+          });
+        }
+        var ctype = res.headers.get("content-type") || "";
+        if (ctype.indexOf("text/event-stream") === -1 && ctype.indexOf("text/plain") === -1) {
+          return res.json().then(function (data) {
+            var text = data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content || "";
+            if (!text) throw new Error("Die API lieferte keine Antwort.");
+            renderAssistant(botEl, text);
+            history.push({ role: "assistant", content: splitThought(text).answer.trim() });
+            setStatus("Fertig (API).", "ok");
+          });
+        }
+        var acc = "";
+        return readSSE(res, function (event, parsed, raw) {
+          if (isCancelled()) return true;
+          if (raw === "[DONE]" || parsed === "[DONE]") return true;
+          var piece = "";
+          if (parsed && parsed.choices && parsed.choices[0]) {
+            var ch = parsed.choices[0];
+            piece = (ch.delta && ch.delta.content) || (ch.message && ch.message.content) || "";
+          }
+          if (piece) {
+            acc += piece;
+            renderAssistant(botEl, acc);
+          }
+          return false;
+        }).then(function () {
+          if (!acc.trim()) throw new Error("Die API lieferte keine Antwort.");
+          renderAssistant(botEl, acc);
+          history.push({ role: "assistant", content: splitThought(acc).answer.trim() });
+          setStatus("Fertig (API).", "ok");
+        });
+      });
+    }
+
+    var savedMode = store.get("mode", "hosted");
+    fillPicker();
+    setMode(savedMode === "browser" || savedMode === "api" ? savedMode : "hosted");
+    addBubble("system", "Schreib einfach los. Standard ist ein kostenloser Server mit einem abliterierten Modell. Am iPhone 13 öffne diese Seite am besten über den https-Link — die Datei-App führt JavaScript oft gar nicht aus.");
+    promptEl.focus();
+  })();
+  </script>
+</body>
+</html>
